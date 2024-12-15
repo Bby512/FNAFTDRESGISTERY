@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 FNAFTD Event Handler 🎉</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(45deg, #1a1a1a, #0c0c0c);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 50px;
+            color: #ff6347;
+            text-shadow: 0 0 10px #ff6347, 0 0 30px #ff6347;
+        }
+        h2 {
+            font-size: 24px;
+            margin: 10px 0;
+            font-weight: lighter;
+        }
+        input {
+            padding: 15px;
+            margin: 10px;
+            font-size: 18px;
+            border-radius: 5px;
+            border: 2px solid #ff6347;
+            background-color: transparent;
+            color: white;
+            outline: none;
+        }
+        input::placeholder {
+            color: #ff6347;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #5865F2;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #4752C4;
+        }
+        .user-list {
+            margin-top: 20px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+            font-size: 18px;
+            line-height: 2;
+            padding: 20px;
+            border: 1px solid #555;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .result {
+            margin-top: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6347;
+            text-shadow: 0 0 10px #ff6347;
+        }
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #bbb;
+            font-size: 14px;
+        }
+        .result-rtx {
+            animation: rtxEffect 3s infinite alternate;
+        }
+        @keyframes rtxEffect {
+            0% {
+                text-shadow: 0 0 15px #ff6347, 0 0 30px #ff6347;
+            }
+            50% {
+                text-shadow: 0 0 35px #ff6347, 0 0 50px #ff6347;
+            }
+            100% {
+                text-shadow: 0 0 15px #ff6347, 0 0 25px #ff6347;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎉 FNAFTD Event Handler 🎉</h1>
+    <h2>Set up and manage giveaways with ease!</h2>
+
+    <input type="text" id="username" placeholder="Enter username to add" />
+    <button onclick="addUser()">Add User</button>
+    
+    <div class="user-list" id="userList">No users added yet.</div>
+
+    <input type="text" id="giveawayPrize" placeholder="Enter giveaway prize" />
+    <button onclick="setupGiveaway()">Setup Giveaway</button>
+
+    <div class="result" id="result"></div>
+
+    <button onclick="announceWinners()">Announce Winners</button>
+    <button onclick="closeGiveaway()">Close Giveaway</button>
+
+    <div class="footer">
+        <p>Made with ❤️ by Criptec.</p>
+    </div>
+
+    <script>
+        const webhookURL = "https://discord.com/api/webhooks/1317925381721817229/4dsdw-UmB7R5Asi3Nf8gCJfbw7s3ZK3yWv0uqsieexvxXZ-e0iZ7Wlg-Qi99bV_D9jx1"; // Your webhook URL
+        const users = []; // Store user names
+        const maxWinners = 3; // Number of winners
+        let giveawayPrize = "";
+        let giveawayActive = false;
+        let giveawayEndTime = null;
+        let giveawayTimer = null;
+
+        // Add user to the list
+        function addUser() {
+            if (!giveawayActive) {
+                alert("No active giveaway. Please set one up.");
+                return;
+            }
+            const username = document.getElementById("username").value.trim();
+            if (username && !users.includes(username)) {
+                users.push(username);
+                updateUserList();
+                document.getElementById("username").value = ""; // Clear the input field
+            } else {
+                alert("Invalid or duplicate username!");
+            }
+        }
+
+        // Update the displayed list of users
+        function updateUserList() {
+            const userListDiv = document.getElementById("userList");
+            if (users.length === 0) {
+                userListDiv.textContent = "No users added yet.";
+            } else {
+                userListDiv.innerHTML = users.map((user, index) => `${index + 1}. ${user}`).join("<br>");
+            }
+        }
+
+        // Setup Giveaway with prize and duration
+        function setupGiveaway() {
+            giveawayPrize = document.getElementById("giveawayPrize").value.trim();
+            if (!giveawayPrize) {
+                alert("Please enter a giveaway prize!");
+                return;
+            }
+
+            giveawayActive = true;
+            giveawayEndTime = Date.now() + (3 * 24 * 60 * 60 * 1000); // 3 days from now
+            updateGiveawayInfo();
+
+            giveawayTimer = setInterval(updateGiveawayInfo, 1000); // Update countdown every second
+        }
+
+        // Update giveaway information with countdown
+        function updateGiveawayInfo() {
+            if (!giveawayEndTime) return;
+
+            const timeLeft = giveawayEndTime - Date.now();
+            if (timeLeft <= 0) {
+                clearInterval(giveawayTimer); // Stop countdown
+                announceWinners(); // Announce winners when time is up
+                return;
+            }
+
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById("result").textContent = `Giveaway active! Prize: ${giveawayPrize} | Time left: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        // Announce winners and send message to Discord
+        function announceWinners() {
+            if (users.length < maxWinners) {
+                document.getElementById("result").textContent = "Not enough users to select winners!";
+                return;
+            }
+
+            // Select random winners
+            const shuffledUsers = [...users].sort(() => 0.5 - Math.random());
+            const winners = shuffledUsers.slice(0, maxWinners);
+
+            // Create the message to send to Discord with prize and countdown info
+            const message = {
+                content: `🎉 **Giveaway Winners!** 🎉\n\n` +
+                         `🎁 **Prize**: ${giveawayPrize}\n` +
+                         `⏳ **Duration**: Giveaway ended! \n` +
+                         winners.map((winner, index) => `${index + 1}. ${winner}`).join("\n") +
+                         `\n\n🎉 Congratulations to the winners! 🎉`
+            };
+
+            // Send the message to Discord via webhook
+            fetch(webhookURL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(message)
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById("result").innerHTML = "Winners announced successfully! <span class='result-rtx'>🎉</span>";
+                } else {
+                    document.getElementById("result").textContent = "Failed to announce winners.";
+                }
+            })
+            .catch(error => {
+                document.getElementById("result").textContent = "An error occurred: " + error.message;
+            });
+
+            // Reset giveaway
+            giveawayActive = false;
+            clearTimeout(giveawayTimer);
+        }
+
+        // Close Giveaway
+        function closeGiveaway() {
+            if (!giveawayActive) {
+                alert("No active giveaway to close.");
+                return;
+            }
+            giveawayActive = false;
+            clearTimeout(giveawayTimer);
+            document.getElementById("result").textContent = "Giveaway closed!";
+        }
+    </script>
+
+</body>
+</html>
